@@ -1,0 +1,147 @@
+//Pas
+typedef enum {
+INICIO, FIN, LEER, ESCRIBIR, ID, CONSTANTE, PARENIZQUIERDO,
+PARENDERECHO, PUNTOYCOMA, COMA, ASIGNACION, SUMA, RESTA, FDT
+} TOKEN;
+
+<objetivo> -> <programa> FDT (Esta es la producción global que se agrega)
+<programa> -> INICIO <listaSentencias> FIN
+<listaSentencias> -> <sentencia> {<sentencia>}
+<sentencia> -> ID ASIGNACIÓN <expresión> PUNTOYCOMA |
+LEER PARENIZQUIERDO <listaIdentificadores> PARENDERECHO PUNTOYCOMA |ESCRIBIR PARENIZQUIERDO <listaExpresiones> PARENDERECHO PUNTOYCOMA
+<listaIdentificadores> -> ID {COMA ID}
+<listaExpresiones> -> <expresión> {COMA <expresión>}
+<expresión> -> <primaria> {<operadorAditivo> <primaria>}
+<primaria> -> ID | CONSTANTE |
+PARENIZQUIERDO <expresión> PARENDERECHO
+<operadorAditivo> -> uno de SUMA RESTA
+
+// Comienzo de kla actividad del parcer
+void Objetivo (void) {
+/* <objetivo> -> <programa> FDT */
+Programa();
+Match(FDT);
+}
+
+void ListaSentencias (void) {
+/* <listaSentencias> -> <sentencia> {<sentencia>} */
+Sentencia(); /* la primera de la lista de sentencias */
+while (1) { /* un ciclo indefinido */
+switch (ProximoToken()) {
+void Sentencia(void) {
+TOKEN tok = ProximoToken();
+switch (tok) {
+case ID: /* <sentencia> -> ID := <expresion>; */
+Match(ID); Match(Asignación>); Expresión(); Match(PUNTOYCOMA);
+break;
+case LEER: /* <sentencia> -> LEER ( <listaIdentificadores> ); */
+Match(LEER); Match(PARENIZQUIERDO); ListaIdentificadores();
+Match(PARENDERECHO); Match(PUNTOYCOMA);
+break;
+case ESCRIBIR: /* <sentencia> -> ESCRIBIR (<listaExpresiones>); */
+Match(ESCRIBIR); Match(PARENIZQUIERDO); ListaExpresiones();
+Match(PARENDERECHO); Match(PUNTOYCOMA);
+break;
+default:
+ErrorSintactico(tok); break;
+}
+}
+
+void Expresion (void) {
+/* <expresion> -> <primaria> {<operadorAditivo> <primaria>} */
+TOKEN t;
+Primaria();
+for (t = ProximoToken(); t == SUMA || t == RESTA; t = ProximoToken())
+{
+OperadorAditivo(); Primaria();
+}
+}
+
+void OperadorAditivo (void) {
+/* <operadorAditivo> -> uno de SUMA RESTA */
+TOKEN t = ProximoToken();
+if (t == SUMA || t == RESTA)
+Match(t);
+else
+ErrorSintactico(t);
+}
+
+void Chequear (string s) {
+if (! Buscar(s)) { /* ¿la cadena está en la Tabla de Símbolos? No: */
+Colocar(s); /* almacenarla, es el nombre de una variable */
+Generar("Declara", s, "Entera", ""); /* genera la instrucción */
+}
+}
+
+void Comenzar (void); /* inicializaciones semánticas */
+void Terminar (void) {
+/* genera la instrucción para terminar la ejecución del programa */
+Generar("Detiene", "", "", "");
+}
+void Asignar (REG_EXPRESION izquierda, REG_EXPRESION derecha) {
+/* genera la instrucción para la asignación */
+Generar("Almacena", Extraer(derecha), izquierda.nombre, "");
+}
+
+<objetivo> -> <programa> FDT #terminar
+<programa> -> #comenzar inicio <listaSentencias> fin
+<listaSentencias> -> <sentencia> {<sentencia>}
+<sentencia> -> <identificador> := <expresión> #asignar ; |
+read ( <listaIdentificadores> ); |
+write ( <listaExpresiones> );
+<listaIdentificadores> -> <identificador> #leer_id
+{, <identificador> #leer_id}
+<listaExpresiones> -> <expresión> #escribir_exp
+{, <expresión> #escribir_exp}
+<expresión> -> <primaria> {<operadorAditivo> <primaria> #gen_infijo}
+<primaria> -> <identificador> |
+CONSTANTE #procesar_cte |
+( <expresión> )
+<operadorAditivo> -> SUMA #procesar_op | RESTA #procesar_op
+<identificador> -> ID #procesar_id
+
+void Leer (REG_EXPRESION in) {
+/* genera la instrucción para leer */
+Generar("Read", in.nombre, "Entera", "");
+}
+REG_EXPRESION ProcesarCte (void) {
+/* convierte cadena que representa número a número entero y construye un registro semántico */
+REG_EXPRESION t;
+t.clase = CONSTANTE;
+sscanf (buffer, "%d", &t.valor);
+return t;
+}
+
+void Escribir (REG_EXPRESION out) {
+Generar("Write", Extraer(out), "Entera", "");
+}
+REG_EXPRESION ProcesarId (void) {
+/* Declara ID y construye el correspondiente registro semántico */
+REG_EXPRESION t;
+Chequear(buffer); t.clase = ID;
+strcpy(t.nombre, buffer);
+return t;
+}
+
+void Expresion (REG_EXPRESION *resultado) {
+/* <expresión> -> <primaria> {<operadorAditivo> <primaria> #gen_infijo}*/
+REG_EXPRESION operandoIzq, operandoDer;
+REG_OPERACION op;
+token t;
+Primaria(&operandoIzq);
+
+for (t = ProximoToken(); t == SUMA || t == RESTA; t = ProximoToken())
+{
+OperadorAditivo(&op); Primaria(&operandoDer);
+operandoIzq = GenInfijo(operandoIzq, op, operandoDer);
+}
+*resultado = operandoIzq;
+}
+
+REG_EXPRESION GenInfijo (REG_EXPRESION e1, REG_OPERACION op,
+REG_EXPRESION e2) {
+/* Genera la instrucción para una operación infija y construye un
+registro semántico con el resultado */
+
+}
+
